@@ -1,6 +1,16 @@
 import numpy as np
 import heapq
 from typing import Union
+from dataclasses import dataclass, field
+
+# Define a dataclass object to store nodes in the priority queue alongside
+# the closest edge to them and the length of that edge
+@dataclass(order=True)
+class Node:
+    priority: int
+    name: int=field(compare=False)
+    prev: int=field(compare=False)
+
 
 class Graph:
 
@@ -41,4 +51,37 @@ class Graph:
         `heapify`, `heappop`, and `heappush` functions.
 
         """
-        self.mst = None
+        # Setup helpful constants
+        n = self.adj_mat.shape[0] # Number of nodes
+        inf = np.max(self.adj_mat) + 1 # Value used to represent no connection
+        
+        # Initialize nodes in the current mst with node 0
+        self.mst = np.zeros((n, n))
+        
+        # Initialize a list of Node data objects for the priority queue
+        # Implicitly: all nodes not in node_pq are in the MST, which is why
+        # node 0 is ommitted from node_pq
+        node_pq = []
+        for i in range(1, n):
+            if self.adj_mat[0, i] > 0: # edge from current mst (1) to node
+                node_pq.append(Node(self.adj_mat[0, i], i, 0))
+            else:
+                node_pq.append(Node(inf, i, -1))
+        heapq.heapify(node_pq)
+
+        # The main loop of prim's algorithm
+        while len(node_pq) > 0:
+            # De-queue the node with shortest edge to the MST
+            closest_node = heapq.heappop(node_pq)
+            # Add the node to the MST and the cheapest edge to the MST
+            self.mst[closest_node.name, closest_node.prev] = \
+                self.adj_mat[closest_node.name, closest_node.prev]
+            self.mst[closest_node.prev, closest_node.name] = \
+                self.adj_mat[closest_node.prev, closest_node.name]
+            # Update the closest edge for neighbours of the added node
+            for node in node_pq:
+                if 0 < self.adj_mat[closest_node.name, node.name] < node.priority:
+                    node.priority = self.adj_mat[closest_node.name, node.name]
+                    node.prev = closest_node.name
+            # Resort the heap, as node priorities were updated
+            heapq.heapify(node_pq)

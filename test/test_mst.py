@@ -26,15 +26,35 @@ def check_mst(adj_mat: np.ndarray,
 
     """
 
+    # Check the MST is symmetric (a valid undirected adjacency matrix) and
+    # is a subset of the adjacency matrix edges
+    assert np.allclose(mst, mst.T, atol=allowed_error)
+    for i in range(mst.shape[0]):
+        for j in range(mst.shape[1]):
+            assert mst[i, j] == adj_mat[i, j] or mst[i, j] == 0
+
+    # Assert MST is connected: Adding 1 on diagonal adds edge from each node 
+    # to itself. mst^k is non-zero at i,j if a path of length k from j to i. 
+    # Then mst_diag^n at i, j is non-zero if <= n steps allows moving from j
+    # to i. The MST is connected if entries of mst_diag^n are non-zero
+    # (there is a path between any pair of nodes).
+    # Alongside the check on number of edges below, this ensures the output is a
+    # spanning tree.
+    mst_diagonal = mst + np.diag(np.ones(mst.shape[0]))
+    assert np.all(np.linalg.matrix_power(mst_diagonal, mst.shape[0]) > 0)
+
     def approx_equal(a, b):
         return abs(a - b) < allowed_error
 
     total = 0
+    edges = 0
     for i in range(mst.shape[0]):
         for j in range(i+1):
             total += mst[i, j]
+            if mst[i, j] > 0:
+                edges += 1
     assert approx_equal(total, expected_weight), 'Proposed MST has incorrect expected weight'
-
+    assert edges == mst.shape[0] - 1 # 1 fewer edges than nodes
 
 def test_mst_small():
     """
@@ -71,4 +91,15 @@ def test_mst_student():
     TODO: Write at least one unit test for MST construction.
     
     """
-    pass
+    # Test 1: Verify the algorithm handles a fully connected graph (5 by 5)
+    file_path = './data/fully_connected.csv'
+    g = Graph(file_path)
+    g.construct_mst()
+    check_mst(g.adj_mat, g.mst, 10)
+
+    # Test 2: Verify the algorithm handles a graph where all edges have the
+    # same weight (size 10 by 10, edge weight 5)
+    file_path = './data/equal_weight.csv'
+    g = Graph(file_path)
+    g.construct_mst()
+    check_mst(g.adj_mat, g.mst, 45)
