@@ -18,7 +18,8 @@ classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
 dependencies = [
     "pytest",
-    "numpy"
+    "numpy",
+    "skikit-learn"
 ]
 requires-python = ">= 3.7"
 
